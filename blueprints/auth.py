@@ -4,6 +4,12 @@ from service import authenticate_user  # 导入 service 模块
 auth_bp = Blueprint("auth", __name__)
 
 
+# test hello word!
+@auth_bp.route("/hello")
+def hello():
+    return "Hello, World!"
+
+
 @auth_bp.route("/login", methods=["POST"])
 def login():
     data = request.json
