@@ -1,4 +1,4 @@
-### 安装
+### 一、安装
 1. 克隆或下载本项目代码。
 2. 创建并激活虚拟环境（Windows 下示例）(条件允许，建议使用anaconda)：
 ```bash
@@ -15,12 +15,12 @@ pip install -r requirement.txt
 * DB_PASSWORD
 * DB_NAME
 
-本地运行
+### 二、本地运行
 1. 启动应用：
 ```bash
 python app.py
 ```
-### 使用 Gunicorn 部署
+### 三、使用 Gunicorn 部署运行
 1. 安装 Gunicorn：
 ```bash
 pip install gunicorn
