@@ -1,10 +1,7 @@
 from flask import Flask
-from dotenv import load_dotenv
 from flask_cors import CORS  # 添加跨域支持
 from blueprints.auth import auth_bp  # 导入蓝图
 
-# 加载环境变量
-load_dotenv()
 
 # Flask 应用实例
 app = Flask(__name__)

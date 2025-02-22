@@ -1,7 +1,9 @@
+import os
+from dotenv import load_dotenv
 import mysql.connector
 from mysql.connector import Error
-import os
 
+load_dotenv()  # 加载 .env 文件
 # 数据库连接配置
 db_config = {
     "host": os.getenv("DB_HOST"),
@@ -20,3 +22,5 @@ def connect_to_database():
     except Error as e:
         print(f"Error: {e}")
         return None
+if __name__ == "__main__":
+    print(connect_to_database())
