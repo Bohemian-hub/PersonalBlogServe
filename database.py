@@ -22,5 +22,3 @@ def connect_to_database():
     except Error as e:
         print(f"Error: {e}")
         return None
-if __name__ == "__main__":
-    print(connect_to_database())
