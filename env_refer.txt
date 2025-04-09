@@ -1,0 +1,14 @@
+# Database Configuration
+DB_HOST=localhost
+DB_USER=root
+DB_PASSWORD=12345678
+DB_NAME=blog
+
+# Mail Configuration
+MAIL_HOST=smtp.qq.com
+MAIL_PORT=465
+MAIL_USER=dongshangwl@qq.com
+MAIL_PASS=dpgyorxjxkcddjgc
+
+IMAGE_STORAGE_PATH=/Users/macbookair/Project/personalBlog/PersonalBlogServe/uploads/images
+MD_STORAGE_PATH=/Users/macbookair/Project/personalBlog/PersonalBlogServe/uploads/md_files
