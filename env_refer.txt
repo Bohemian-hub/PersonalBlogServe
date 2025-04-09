@@ -12,3 +12,6 @@ MAIL_PASS=dpgyorxjxkcddjgc
 
 IMAGE_STORAGE_PATH=/Users/macbookair/Project/personalBlog/PersonalBlogServe/uploads/images
 MD_STORAGE_PATH=/Users/macbookair/Project/personalBlog/PersonalBlogServe/uploads/md_files
+
+# IMAGE_STORAGE_PATH=/serve/uploads/images
+# MD_STORAGE_PATH=/serve/uploads/md_files
