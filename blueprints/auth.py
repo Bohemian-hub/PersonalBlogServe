@@ -1,4 +1,3 @@
-# filepath: /Users/macbookair/Project/personalBlog/PersonalBlogServe/blueprints/auth.py
 from flask import Blueprint, request, jsonify
 from services.auth import authenticate_user, create_user, verify_email_exists
 from mail import send_email

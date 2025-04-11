@@ -1,0 +1,81 @@
+##
+# You should look at the following URL's in order to grasp a solid understanding
+# of Nginx configuration files in order to fully unleash the power of Nginx.
+# https://www.nginx.com/resources/wiki/start/
+# https://www.nginx.com/resources/wiki/start/topics/tutorials/config_pitfalls/
+# https://wiki.debian.org/Nginx/DirectoryStructure
+#
+# In most cases, administrators will remove this file from sites-enabled/ and
+# leave it as reference inside of sites-available where it will continue to be
+# updated by the nginx packaging team.
+#
+# This file will automatically load configuration files provided by other
+# applications, such as Drupal or Wordpress. These applications will be made
+# available underneath a path with that package name, such as /drupal8.
+#
+# Please see /usr/share/doc/nginx-doc/examples/ for more detailed examples.
+##
+
+# Default server configuration
+#
+
+# HTTP 端口，强制跳转到 HTTPS
+server {
+    listen 80;
+    listen [::]:80;
+    server_name hedong.site www.hedong.site;
+    
+    # 使用 301 永久重定向
+    return 301 https://$host$request_uri;
+}
+
+server {
+	#listen 80 default_server;
+	#listen [::]:80 default_server;
+
+	# SSL configuration
+	listen 443 ssl default_server;
+	listen [::]:443 ssl default_server;
+	server_name hedong.site www.hedong.site;
+    ssl_certificate /etc/nginx/cert/hedong.site.pem;
+    ssl_certificate_key /etc/nginx/cert/hedong.site.key;
+	root /var/www/html;
+
+    # 反向代理 /api/ 到 Flask 的 Gunicorn 服务
+    location /api/ {
+        proxy_pass http://127.0.0.1:8000/;  # Flask Gunicorn 监听的地址
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+	location / {
+		# First attempt to serve request as file, then
+		# as directory, then fall back to displaying a 404.
+		; try_files $uri $uri/ =404;
+        # 关键配置：对于所有路径，尝试提供文件，如果不存在就返回index.html（让 Vue 应用接管路由）
+        try_files $uri $uri/ /index.html;
+	}
+
+}
+
+
+# Virtual Host configuration for example.com
+#
+# You can move that to a different file under sites-available/ and symlink that
+# to sites-enabled/ to enable it.
+#
+#server {
+#	listen 80;
+#	listen [::]:80;
+#
+#	server_name example.com;
+#
+#	root /var/www/example.com;
+#	index index.html;
+#
+#	location / {
+#		try_files $uri $uri/ =404;
+#	}
+#}
