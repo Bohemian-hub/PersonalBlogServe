@@ -199,15 +199,8 @@ def get_markdown(md_id):
                     "error": 0,
                     "body": {
                         "id": md_id,
-                        "title": md_file["title"],
-                        "description": md_file["description"],
                         "content": content,
                         "original_filename": md_file["original_filename"],
-                        "created_at": (
-                            md_file["created_at"].isoformat()
-                            if md_file.get("created_at")
-                            else None
-                        ),
                     },
                     "msg": "获取成功",
                 }

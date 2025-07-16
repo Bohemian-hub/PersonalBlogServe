@@ -6,6 +6,12 @@ from services.article import (
     delete_article,
     publish_draft_article,
     get_article_by_id,
+    update_article,
+    get_article_content,
+    unpublish_published_article,  # 导入撤回文章的服务函数
+    batch_delete_articles_service,
+    batch_publish_articles_service,
+    batch_unpublish_articles_service,
 )
 
 article_bp = Blueprint("article", __name__, url_prefix="/article")
@@ -168,6 +174,251 @@ def get_article_detail(article_id):
             return jsonify({"error": 404, "body": None, "msg": "文章不存在"}), 404
 
         return jsonify({"error": 0, "body": article, "msg": "获取成功"}), 200
+
+    except Exception as e:
+        return (
+            jsonify({"error": 500, "body": None, "msg": f"服务器错误: {str(e)}"}),
+            500,
+        )
+
+
+@article_bp.route("/<int:article_id>/content", methods=["GET"])
+def get_article_content_detail(article_id):
+    """
+    获取文章完整内容接口（用于编辑）
+    """
+    try:
+        article, error = get_article_content(article_id)
+
+        if error:
+            print(f"获取文章内容错误: {error}")  # 添加调试日志
+            return (
+                jsonify({"error": 500, "body": None, "msg": f"获取失败: {error}"}),
+                500,
+            )
+
+        if not article:
+            return jsonify({"error": 404, "body": None, "msg": "文章不存在"}), 404
+
+        print(f"返回文章数据: {article}")  # 添加调试日志
+        return jsonify({"error": 0, "body": article, "msg": "获取成功"}), 200
+
+    except Exception as e:
+        print(f"服务器错误: {str(e)}")  # 添加调试日志
+        return (
+            jsonify({"error": 500, "body": None, "msg": f"服务器错误: {str(e)}"}),
+            500,
+        )
+
+
+@article_bp.route("/<int:article_id>", methods=["PUT"])
+def update_article_by_id(article_id):
+    """
+    更新文章接口
+    """
+    if not request.is_json:
+        return jsonify({"error": 400, "body": None, "msg": "请发送JSON格式的请求"}), 400
+
+    article_data = request.json
+
+    try:
+        article, error = update_article(article_id, article_data)
+
+        if error:
+            return (
+                jsonify({"error": 500, "body": None, "msg": f"更新失败: {error}"}),
+                500,
+            )
+
+        return jsonify({"error": 0, "body": article, "msg": "更新成功"}), 200
+
+    except Exception as e:
+        return (
+            jsonify({"error": 500, "body": None, "msg": f"服务器错误: {str(e)}"}),
+            500,
+        )
+
+
+@article_bp.route("/<int:article_id>/unpublish", methods=["PATCH"])
+def unpublish_article(article_id):
+    """
+    撤回已发布文章为草稿接口
+    """
+    try:
+        article, error = unpublish_published_article(article_id)
+
+        if error:
+            return (
+                jsonify({"error": 500, "body": None, "msg": f"撤回失败: {error}"}),
+                500,
+            )
+
+        return jsonify({"error": 0, "body": article, "msg": "撤回成功"}), 200
+
+    except Exception as e:
+        return (
+            jsonify({"error": 500, "body": None, "msg": f"服务器错误: {str(e)}"}),
+            500,
+        )
+
+
+@article_bp.route("/batch/delete", methods=["POST"])
+def batch_delete_articles():
+    """
+    批量删除文章接口
+    """
+    if not request.is_json:
+        return jsonify({"error": 400, "body": None, "msg": "请发送JSON格式的请求"}), 400
+
+    data = request.json
+    article_ids = data.get("article_ids", [])
+
+    if not article_ids:
+        return (
+            jsonify({"error": 400, "body": None, "msg": "请提供要删除的文章ID列表"}),
+            400,
+        )
+
+    try:
+        success_count, error_count, error_msg = batch_delete_articles_service(
+            article_ids
+        )
+
+        if error_count > 0:
+            return (
+                jsonify(
+                    {
+                        "error": 206,
+                        "body": {
+                            "success_count": success_count,
+                            "error_count": error_count,
+                        },
+                        "msg": f"部分删除成功: 成功{success_count}篇，失败{error_count}篇。{error_msg}",
+                    }
+                ),
+                206,
+            )
+        else:
+            return (
+                jsonify(
+                    {
+                        "error": 0,
+                        "body": {"success_count": success_count},
+                        "msg": f"批量删除成功，共删除{success_count}篇文章",
+                    }
+                ),
+                200,
+            )
+
+    except Exception as e:
+        return (
+            jsonify({"error": 500, "body": None, "msg": f"服务器错误: {str(e)}"}),
+            500,
+        )
+
+
+@article_bp.route("/batch/publish", methods=["POST"])
+def batch_publish_articles():
+    """
+    批量发布文章接口
+    """
+    if not request.is_json:
+        return jsonify({"error": 400, "body": None, "msg": "请发送JSON格式的请求"}), 400
+
+    data = request.json
+    article_ids = data.get("article_ids", [])
+
+    if not article_ids:
+        return (
+            jsonify({"error": 400, "body": None, "msg": "请提供要发布的文章ID列表"}),
+            400,
+        )
+
+    try:
+        success_count, error_count, error_msg = batch_publish_articles_service(
+            article_ids
+        )
+
+        if error_count > 0:
+            return (
+                jsonify(
+                    {
+                        "error": 206,
+                        "body": {
+                            "success_count": success_count,
+                            "error_count": error_count,
+                        },
+                        "msg": f"部分发布成功: 成功{success_count}篇，失败{error_count}篇。{error_msg}",
+                    }
+                ),
+                206,
+            )
+        else:
+            return (
+                jsonify(
+                    {
+                        "error": 0,
+                        "body": {"success_count": success_count},
+                        "msg": f"批量发布成功，共发布{success_count}篇文章",
+                    }
+                ),
+                200,
+            )
+
+    except Exception as e:
+        return (
+            jsonify({"error": 500, "body": None, "msg": f"服务器错误: {str(e)}"}),
+            500,
+        )
+
+
+@article_bp.route("/batch/unpublish", methods=["POST"])
+def batch_unpublish_articles():
+    """
+    批量撤回文章接口
+    """
+    if not request.is_json:
+        return jsonify({"error": 400, "body": None, "msg": "请发送JSON格式的请求"}), 400
+
+    data = request.json
+    article_ids = data.get("article_ids", [])
+
+    if not article_ids:
+        return (
+            jsonify({"error": 400, "body": None, "msg": "请提供要撤回的文章ID列表"}),
+            400,
+        )
+
+    try:
+        success_count, error_count, error_msg = batch_unpublish_articles_service(
+            article_ids
+        )
+
+        if error_count > 0:
+            return (
+                jsonify(
+                    {
+                        "error": 206,
+                        "body": {
+                            "success_count": success_count,
+                            "error_count": error_count,
+                        },
+                        "msg": f"部分撤回成功: 成功{success_count}篇，失败{error_count}篇。{error_msg}",
+                    }
+                ),
+                206,
+            )
+        else:
+            return (
+                jsonify(
+                    {
+                        "error": 0,
+                        "body": {"success_count": success_count},
+                        "msg": f"批量撤回成功，共撤回{success_count}篇文章",
+                    }
+                ),
+                200,
+            )
 
     except Exception as e:
         return (

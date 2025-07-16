@@ -309,3 +309,405 @@ def get_article_by_id(article_id):
             cursor.close()
             connection.close()
         return None, str(e)
+
+
+def update_article(article_id, article_data):
+    """
+    更新文章
+
+    Args:
+        article_id (int): 文章ID
+        article_data (dict): 包含文章信息的字典
+
+    Returns:
+        tuple: (更新后的文章对象或None, 错误信息或None)
+    """
+    connection = connect_to_database()
+    if not connection:
+        return None, "数据库连接失败"
+
+    try:
+        cursor = connection.cursor(dictionary=True)
+
+        # 检查文章是否存在
+        check_query = "SELECT id FROM articles WHERE id = %s"
+        cursor.execute(check_query, (article_id,))
+        if not cursor.fetchone():
+            cursor.close()
+            connection.close()
+            return None, "文章不存在"
+
+        # 处理标签 - 确保它们是字符串格式
+        tags = article_data.get("tags", "")
+        if isinstance(tags, list):
+            tags = ",".join(tags)
+
+        # 准备更新数据
+        update_fields = []
+        values = []
+
+        # 动态构建更新字段
+        if "title" in article_data:
+            update_fields.append("title = %s")
+            values.append(article_data["title"])
+
+        if "summary" in article_data:
+            update_fields.append("summary = %s")
+            values.append(article_data["summary"])
+
+        if "cover_image_url" in article_data:
+            update_fields.append("cover_image_url = %s")
+            values.append(article_data["cover_image_url"])
+
+        if "category" in article_data:
+            update_fields.append("category = %s")
+            values.append(article_data["category"])
+
+        if "tags" in article_data:
+            update_fields.append("tags = %s")
+            values.append(tags)
+
+        if "content_url" in article_data:
+            update_fields.append("content_url = %s")
+            values.append(article_data["content_url"])
+
+        if "status" in article_data:
+            update_fields.append("status = %s")
+            values.append(article_data["status"])
+
+        if not update_fields:
+            cursor.close()
+            connection.close()
+            return None, "没有需要更新的字段"
+
+        # 执行更新
+        update_query = f"UPDATE articles SET {', '.join(update_fields)} WHERE id = %s"
+        values.append(article_id)
+
+        cursor.execute(update_query, values)
+        connection.commit()
+
+        # 获取更新后的文章
+        query = "SELECT * FROM articles WHERE id = %s"
+        cursor.execute(query, (article_id,))
+        article = cursor.fetchone()
+
+        cursor.close()
+        connection.close()
+
+        # 处理标签格式用于返回
+        if article and article.get("tags"):
+            article["tags"] = article["tags"].split(",") if article["tags"] else []
+
+        return article, None
+
+    except Error as e:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+        return None, str(e)
+
+
+def get_article_content(article_id):
+    """
+    获取文章完整内容（包括Markdown内容）
+
+    Args:
+        article_id (int): 文章ID
+
+    Returns:
+        tuple: (文章对象或None, 错误信息或None)
+    """
+    connection = connect_to_database()
+    if not connection:
+        return None, "数据库连接失败"
+
+    try:
+        cursor = connection.cursor(dictionary=True)
+
+        query = "SELECT * FROM articles WHERE id = %s"
+        cursor.execute(query, (article_id,))
+        article = cursor.fetchone()
+
+        cursor.close()
+        connection.close()
+
+        if not article:
+            return None, "文章不存在"
+
+        # 处理标签格式
+        if article.get("tags"):
+            article["tags"] = article["tags"].split(",") if article["tags"] else []
+        else:
+            article["tags"] = []
+
+        # 确保所有必要字段都存在
+        required_fields = [
+            "title",
+            "summary",
+            "cover_image_url",
+            "category",
+            "content_url",
+            "status",
+        ]
+        for field in required_fields:
+            if field not in article or article[field] is None:
+                article[field] = ""
+
+        # 格式化创建时间
+        if article.get("created_at") and hasattr(article["created_at"], "strftime"):
+            article["created_at"] = article["created_at"].strftime("%Y-%m-%d %H:%M:%S")
+
+        print(f"获取文章数据成功: {article}")  # 添加调试日志
+        return article, None
+
+    except Error as e:
+        if connection and connection.is_connected():
+            cursor.close()
+            connection.close()
+        print(f"数据库错误: {str(e)}")  # 添加调试日志
+        return None, str(e)
+    except Exception as e:
+        if connection and connection.is_connected():
+            cursor.close()
+            connection.close()
+        print(f"获取文章内容异常: {str(e)}")  # 添加调试日志
+        return None, str(e)
+
+
+def unpublish_published_article(article_id):
+    """
+    撤回已发布文章为草稿
+
+    Args:
+        article_id (int): 文章ID
+
+    Returns:
+        tuple: (更新后的文章或None, 错误信息或None)
+    """
+    connection = connect_to_database()
+    if not connection:
+        return None, "数据库连接失败"
+
+    try:
+        cursor = connection.cursor(dictionary=True)
+
+        # 检查文章是否存在且为已发布状态
+        check_query = "SELECT * FROM articles WHERE id = %s AND status = 'published'"
+        cursor.execute(check_query, (article_id,))
+        article = cursor.fetchone()
+
+        if not article:
+            cursor.close()
+            connection.close()
+            return None, "文章不存在或不是已发布状态"
+
+        # 更新文章状态为草稿
+        update_query = "UPDATE articles SET status = 'draft' WHERE id = %s"
+        cursor.execute(update_query, (article_id,))
+        connection.commit()
+
+        # 获取更新后的文章
+        cursor.execute("SELECT * FROM articles WHERE id = %s", (article_id,))
+        updated_article = cursor.fetchone()
+
+        cursor.close()
+        connection.close()
+
+        # 处理标签格式
+        if updated_article and updated_article.get("tags"):
+            updated_article["tags"] = (
+                updated_article["tags"].split(",") if updated_article["tags"] else []
+            )
+
+        return updated_article, None
+
+    except Error as e:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+        return None, str(e)
+
+
+def batch_delete_articles_service(article_ids):
+    """
+    批量删除文章（只能删除草稿状态的文章）
+
+    Args:
+        article_ids (list): 文章ID列表
+
+    Returns:
+        tuple: (成功删除数量, 失败数量, 错误信息)
+    """
+    connection = connect_to_database()
+    if not connection:
+        return 0, len(article_ids), "数据库连接失败"
+
+    success_count = 0
+    error_count = 0
+    error_messages = []
+
+    try:
+        cursor = connection.cursor(dictionary=True)
+
+        for article_id in article_ids:
+            try:
+                # 检查文章是否存在且为草稿状态
+                check_query = "SELECT id, status FROM articles WHERE id = %s"
+                cursor.execute(check_query, (article_id,))
+                article = cursor.fetchone()
+
+                if not article:
+                    error_count += 1
+                    error_messages.append(f"文章ID {article_id} 不存在")
+                    continue
+
+                if article["status"] != "draft":
+                    error_count += 1
+                    error_messages.append(f"文章ID {article_id} 不是草稿状态，无法删除")
+                    continue
+
+                # 删除文章
+                delete_query = "DELETE FROM articles WHERE id = %s"
+                cursor.execute(delete_query, (article_id,))
+                success_count += 1
+
+            except Exception as e:
+                error_count += 1
+                error_messages.append(f"删除文章ID {article_id} 失败: {str(e)}")
+
+        connection.commit()
+        cursor.close()
+        connection.close()
+
+        error_msg = "; ".join(error_messages[:3])  # 只显示前3个错误
+        if len(error_messages) > 3:
+            error_msg += f" 等{len(error_messages)}个错误"
+
+        return success_count, error_count, error_msg
+
+    except Error as e:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+        return 0, len(article_ids), str(e)
+
+
+def batch_publish_articles_service(article_ids):
+    """
+    批量发布文章（只能发布草稿状态的文章）
+
+    Args:
+        article_ids (list): 文章ID列表
+
+    Returns:
+        tuple: (成功发布数量, 失败数量, 错误信息)
+    """
+    connection = connect_to_database()
+    if not connection:
+        return 0, len(article_ids), "数据库连接失败"
+
+    success_count = 0
+    error_count = 0
+    error_messages = []
+
+    try:
+        cursor = connection.cursor(dictionary=True)
+
+        for article_id in article_ids:
+            try:
+                # 检查文章是否存在且为草稿状态
+                check_query = (
+                    "SELECT id, status FROM articles WHERE id = %s AND status = 'draft'"
+                )
+                cursor.execute(check_query, (article_id,))
+                article = cursor.fetchone()
+
+                if not article:
+                    error_count += 1
+                    error_messages.append(f"文章ID {article_id} 不存在或不是草稿状态")
+                    continue
+
+                # 更新文章状态为已发布
+                update_query = "UPDATE articles SET status = 'published' WHERE id = %s"
+                cursor.execute(update_query, (article_id,))
+                success_count += 1
+
+            except Exception as e:
+                error_count += 1
+                error_messages.append(f"发布文章ID {article_id} 失败: {str(e)}")
+
+        connection.commit()
+        cursor.close()
+        connection.close()
+
+        error_msg = "; ".join(error_messages[:3])  # 只显示前3个错误
+        if len(error_messages) > 3:
+            error_msg += f" 等{len(error_messages)}个错误"
+
+        return success_count, error_count, error_msg
+
+    except Error as e:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+        return 0, len(article_ids), str(e)
+
+
+def batch_unpublish_articles_service(article_ids):
+    """
+    批量撤回文章（只能撤回已发布状态的文章）
+
+    Args:
+        article_ids (list): 文章ID列表
+
+    Returns:
+        tuple: (成功撤回数量, 失败数量, 错误信息)
+    """
+    connection = connect_to_database()
+    if not connection:
+        return 0, len(article_ids), "数据库连接失败"
+
+    success_count = 0
+    error_count = 0
+    error_messages = []
+
+    try:
+        cursor = connection.cursor(dictionary=True)
+
+        for article_id in article_ids:
+            try:
+                # 检查文章是否存在且为已发布状态
+                check_query = "SELECT id, status FROM articles WHERE id = %s AND status = 'published'"
+                cursor.execute(check_query, (article_id,))
+                article = cursor.fetchone()
+
+                if not article:
+                    error_count += 1
+                    error_messages.append(f"文章ID {article_id} 不存在或不是已发布状态")
+                    continue
+
+                # 更新文章状态为草稿
+                update_query = "UPDATE articles SET status = 'draft' WHERE id = %s"
+                cursor.execute(update_query, (article_id,))
+                success_count += 1
+
+            except Exception as e:
+                error_count += 1
+                error_messages.append(f"撤回文章ID {article_id} 失败: {str(e)}")
+
+        connection.commit()
+        cursor.close()
+        connection.close()
+
+        error_msg = "; ".join(error_messages[:3])  # 只显示前3个错误
+        if len(error_messages) > 3:
+            error_msg += f" 等{len(error_messages)}个错误"
+
+        return success_count, error_count, error_msg
+
+    except Error as e:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+        return 0, len(article_ids), str(e)
