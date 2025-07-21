@@ -5,6 +5,7 @@ from werkzeug.utils import secure_filename
 import uuid
 import datetime
 from services.media import save_media_info, get_media_info, read_markdown_content
+from middlewares.auth import require_admin
 
 # 加载环境变量
 load_dotenv()
@@ -34,7 +35,9 @@ def allowed_md_file(filename):
     )
 
 
+# 需要管理员权限的接口
 @media_bp.route("/upload/image", methods=["POST"])
+@require_admin
 def upload_image():
     # 检查是否有文件部分
     if "file" not in request.files:
@@ -89,6 +92,7 @@ def upload_image():
 
 
 @media_bp.route("/upload/markdown", methods=["POST"])
+@require_admin
 def upload_markdown():
     # 检查是否有文件部分
     if "file" not in request.files:
@@ -155,6 +159,7 @@ def upload_markdown():
     return jsonify({"error": 400, "body": None, "msg": "不支持的文件类型"}), 200
 
 
+# 公开接口（不需要认证）
 @media_bp.route("/image/<image_id>", methods=["GET"])
 def get_media(image_id):
     try:

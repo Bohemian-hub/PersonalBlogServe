@@ -13,11 +13,14 @@ from services.article import (
     batch_publish_articles_service,
     batch_unpublish_articles_service,
 )
+from middlewares.auth import require_admin
 
 article_bp = Blueprint("article", __name__, url_prefix="/article")
 
 
+# 需要管理员权限的接口
 @article_bp.route("/upload", methods=["POST"])
+@require_admin
 def upload_article():
     """
     上传文章接口
@@ -50,6 +53,7 @@ def upload_article():
 
 
 @article_bp.route("/list", methods=["GET"])
+@require_admin
 def get_article_list():
     """
     获取文章列表接口 - 支持分页和筛选
@@ -111,6 +115,7 @@ def get_article_list():
 
 
 @article_bp.route("/<int:article_id>", methods=["DELETE"])
+@require_admin
 def delete_article_by_id(article_id):
     """
     删除文章接口
@@ -134,6 +139,7 @@ def delete_article_by_id(article_id):
 
 
 @article_bp.route("/<int:article_id>/publish", methods=["PATCH"])
+@require_admin
 def publish_draft(article_id):
     """
     发布草稿文章接口
@@ -183,6 +189,7 @@ def get_article_detail(article_id):
 
 
 @article_bp.route("/<int:article_id>/content", methods=["GET"])
+@require_admin
 def get_article_content_detail(article_id):
     """
     获取文章完整内容接口（用于编辑）
@@ -212,6 +219,7 @@ def get_article_content_detail(article_id):
 
 
 @article_bp.route("/<int:article_id>", methods=["PUT"])
+@require_admin
 def update_article_by_id(article_id):
     """
     更新文章接口
@@ -240,6 +248,7 @@ def update_article_by_id(article_id):
 
 
 @article_bp.route("/<int:article_id>/unpublish", methods=["PATCH"])
+@require_admin
 def unpublish_article(article_id):
     """
     撤回已发布文章为草稿接口
@@ -263,6 +272,7 @@ def unpublish_article(article_id):
 
 
 @article_bp.route("/batch/delete", methods=["POST"])
+@require_admin
 def batch_delete_articles():
     """
     批量删除文章接口
@@ -318,6 +328,7 @@ def batch_delete_articles():
 
 
 @article_bp.route("/batch/publish", methods=["POST"])
+@require_admin
 def batch_publish_articles():
     """
     批量发布文章接口
@@ -373,6 +384,7 @@ def batch_publish_articles():
 
 
 @article_bp.route("/batch/unpublish", methods=["POST"])
+@require_admin
 def batch_unpublish_articles():
     """
     批量撤回文章接口
