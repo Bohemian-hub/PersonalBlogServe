@@ -45,7 +45,7 @@ def upload_article():
             500,
         )
 
-    # 返回创建的文章信息 - article现在是字典而不是对象
+    # 返回创建的文章信息，确保包含id字段
     return jsonify({"error": 0, "body": article, "msg": "文章创建成功"}), 200
 
 

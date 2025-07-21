@@ -39,8 +39,8 @@ def create_article(article_data):
             article_data.get("title"),
             article_data.get("summary"),
             article_data.get("cover_image_url"),
-            article_data.get("category"),
             tags,
+            article_data.get("category"),
             article_data.get("likes_count", 0),
             article_data.get("comments_count", 0),
             article_data.get("views_count", 0),
@@ -52,8 +52,11 @@ def create_article(article_data):
         cursor.execute(insert_query, values)
         connection.commit()
 
-        # 获取创建的文章
+        # 获取创建的文章ID
         article_id = cursor.lastrowid
+        print(f"创建文章成功，ID: {article_id}")  # 添加调试日志
+
+        # 获取完整的文章信息
         query = "SELECT * FROM articles WHERE id = %s"
         cursor.execute(query, (article_id,))
         article = cursor.fetchone()
@@ -61,16 +64,32 @@ def create_article(article_data):
         cursor.close()
         connection.close()
 
+        if not article:
+            return None, "创建文章后获取文章信息失败"
+
         # 处理标签格式用于返回
         if article and article.get("tags"):
             article["tags"] = article["tags"].split(",") if article["tags"] else []
+        else:
+            article["tags"] = []
 
+        # 确保返回的文章包含ID
+        print(
+            f"返回文章信息: ID={article.get('id')}, title={article.get('title')}"
+        )  # 添加调试日志
         return article, None
 
     except Error as e:
         if connection.is_connected():
             cursor.close()
             connection.close()
+        print(f"创建文章数据库错误: {str(e)}")  # 添加调试日志
+        return None, str(e)
+    except Exception as e:
+        if connection and connection.is_connected():
+            cursor.close()
+            connection.close()
+        print(f"创建文章异常: {str(e)}")  # 添加调试日志
         return None, str(e)
 
 
