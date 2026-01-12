@@ -53,7 +53,6 @@ def upload_article():
 
 
 @article_bp.route("/list", methods=["GET"])
-@require_admin
 def get_article_list():
     """
     获取文章列表接口 - 支持分页和筛选

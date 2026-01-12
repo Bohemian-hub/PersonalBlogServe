@@ -37,7 +37,7 @@ def send_verification_code():
         redis_client.setex(f"verify_code:{email}", 300, code)
         return jsonify({"error": 0, "body": None, "msg": "验证码已发送"}), 200
     else:
-        return jsonify({"error": 500, "body": None, "msg": "验证码发送失败"}), 200
+        return jsonify({"error": 500, "body": None, "msg": "验证码发送失败 form backon"}), 200
 
 
 @auth_bp.route("/register", methods=["POST"])
