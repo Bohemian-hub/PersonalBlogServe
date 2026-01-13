@@ -14,8 +14,8 @@ mail_port = int(os.getenv("MAIL_PORT"))
 mail_user = os.getenv("MAIL_USER")
 mail_pass = os.getenv("MAIL_PASS")
 # 默认URL或从环境获取
-server_url = os.getenv("SERVER_URL", "http://127.0.0.1:5000")
-frontend_url = os.getenv("FRONTEND_URL", "http://localhost:8080")
+
+frontend_url = os.getenv("FRONTEND_URL", "https://hedong.site")
 
 
 def send_email(to_addr, code):

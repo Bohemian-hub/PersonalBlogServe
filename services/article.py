@@ -1,6 +1,8 @@
 from mysql.connector import Error
 from database import connect_to_database
 from datetime import datetime
+from services.media import delete_media
+import re
 
 
 def create_article(article_data):
@@ -387,6 +389,30 @@ def update_article(article_id, article_data):
             values.append(tags)
 
         if "content_url" in article_data:
+            # 检查旧的内容URL，如果存在且不同，则删除旧文件
+            query_old = "SELECT content_url FROM articles WHERE id = %s"
+            cursor.execute(query_old, (article_id,))
+            old_record = cursor.fetchone()
+
+            if (
+                old_record
+                and old_record["content_url"]
+                and old_record["content_url"] != article_data["content_url"]
+            ):
+                old_url = old_record["content_url"]
+                # 提取markdown ID
+                match = re.search(r"/media/markdown/([a-zA-Z0-9-]+)", old_url)
+                if match:
+                    media_id = match.group(1)
+                    try:
+                        # 在当前事务外执行删除，或者最好放在事务之后？
+                        # 由于delete_media开启新连接，所以没问题。
+                        # 这里只是清理垃圾数据，失败不应阻止更新
+                        delete_media(media_id)
+                        print(f"Cleaned up old media file: {media_id}")
+                    except Exception as e:
+                        print(f"Cleanup old media failed: {e}")
+
             update_fields.append("content_url = %s")
             values.append(article_data["content_url"])
 

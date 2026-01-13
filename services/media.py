@@ -1,4 +1,5 @@
 import uuid
+import os
 from database import connect_to_database
 from mysql.connector import Error
 
@@ -52,3 +53,40 @@ def read_markdown_content(file_path):
         return content
     except Exception as e:
         raise Exception(f"读取 Markdown 文件失败: {str(e)}")
+
+
+def delete_media(media_id):
+    """删除媒体信息及文件"""
+    connection = connect_to_database()
+    if not connection:
+        raise Exception("数据库连接失败")
+    try:
+        cursor = connection.cursor(dictionary=True)
+
+        # 1. 获取文件路径
+        query = "SELECT relative_path FROM media WHERE id = %s"
+        cursor.execute(query, (media_id,))
+        result = cursor.fetchone()
+
+        if result:
+            file_path = result["relative_path"]
+            # 2. 删除文件 (如果存在)
+            if os.path.exists(file_path):
+                try:
+                    os.remove(file_path)
+                except OSError as e:
+                    print(f"Error removing file {file_path}: {e}")
+
+            # 3. 删除数据库记录
+            delete_query = "DELETE FROM media WHERE id = %s"
+            cursor.execute(delete_query, (media_id,))
+            connection.commit()
+
+        cursor.close()
+        connection.close()
+        return True
+    except Error as e:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+        raise Exception(str(e))
